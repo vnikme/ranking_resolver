@@ -7,10 +7,12 @@
 TRankingResolver::TRankingResolver(size_t height)
     : Gradient(1 << (height + 1))
     , Hessian(1 << (height + 1), std::vector<double>(1 << (height + 1)))
+    , SumWeights(1e-38)
 {
 }
 
 void TRankingResolver::Add(size_t targetBin, double targetScore, size_t otherBin, double otherScore, double weight) {
+    SumWeights += weight;
     bool same = (targetBin == otherBin);
     targetBin = targetBin * 2 + 1;
     otherBin = otherBin * 2 + 1;
@@ -218,6 +220,8 @@ std::vector<double> TRankingResolver::MakeGradient() const {
     TVector gradient(Gradient);
     for (size_t i = 0, n = Gradient.size(); i < n; i += 2)
         gradient[i + 1] -= gradient[i];
+    for (double &val : gradient)
+        val /= SumWeights;
     return gradient;
 }
 
@@ -255,6 +259,9 @@ std::vector<std::vector<double>> TRankingResolver::MakeHessian() const {
             hessian[j + 1][i] -= t;
         }
     }
+    for (TVector &row : hessian)
+        for (double &val : row)
+            val /= SumWeights;
     return hessian;
 
 }

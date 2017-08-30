@@ -18,5 +18,6 @@ class TRankingResolver : private boost::noncopyable {
     private:
         std::vector<double> Gradient;               // Size is 2 ^ (height + 1), +1 because of splitting for next level
         std::vector<std::vector<double>> Hessian;   // Size is 2 ^ (height + 1) by 2 ^ (height + 1)
+        double SumWeights;
 };
 

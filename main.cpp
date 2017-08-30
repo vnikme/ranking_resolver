@@ -22,7 +22,7 @@ std::vector<TItem> GenerateData(size_t count, size_t n) {
     std::vector<TItem> data;
     data.reserve(count * 2);
     for (size_t i = 0; i < count; ++i) {
-        data.push_back(TItem { idist(rng), rdist(rng) - 5.0, rdist(rng) + 5.0, true, i });
+        data.push_back(TItem { idist(rng), rdist(rng), rdist(rng) + 5.0, true, i });
         data.push_back(TItem { idist(rng), rdist(rng), rdist(rng), false, i });
     }
     return data;
@@ -31,7 +31,7 @@ std::vector<TItem> GenerateData(size_t count, size_t n) {
 int main() {
     size_t n = 2;
     TRankingResolver resolver(n);
-    std::vector<TItem> data = GenerateData(5000, n);
+    std::vector<TItem> data = GenerateData(50000, n);
     std::vector<size_t> idx(data.size());
     for (size_t i = 0; i < idx.size(); ++i)
         idx[i] = i;
