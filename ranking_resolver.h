@@ -1,10 +1,9 @@
 #pragma once
 
-#include <boost/noncopyable.hpp>
 #include <vector>
 
 
-class TRankingResolver : private boost::noncopyable {
+class TRankingResolver {
     public:
         TRankingResolver(size_t height);
         void Add(size_t targetBin, double targetScore, size_t otherBin, double otherScore, double weight);
@@ -19,5 +18,10 @@ class TRankingResolver : private boost::noncopyable {
         std::vector<double> Gradient;               // Size is 2 ^ (height + 1), +1 because of splitting for next level
         std::vector<std::vector<double>> Hessian;   // Size is 2 ^ (height + 1) by 2 ^ (height + 1)
         double SumWeights;
+
+        TRankingResolver(const TRankingResolver &) = delete;
+        TRankingResolver(TRankingResolver &&) = delete;
+        TRankingResolver &operator = (const TRankingResolver &) = delete;
+        TRankingResolver &operator = (TRankingResolver &&) = delete;
 };
 

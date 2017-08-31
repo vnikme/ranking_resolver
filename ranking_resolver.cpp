@@ -197,8 +197,8 @@ namespace {
         TMatrix x;
         for (; ;) {
             if (DoInverse(a, add, seed, eps, maxValue, maxSteps, x)) {
-                std::cout << "Found inverse: " << add << " " << seed << " " << maxSteps << std::endl;
-                std::cout << std::endl;
+                //std::cout << "Found inverse: " << add << " " << seed << " " << maxSteps << std::endl;
+                //std::cout << std::endl;
                 return x;
             }
             if (add == 0.0)
@@ -241,14 +241,15 @@ std::vector<std::vector<double>> TRankingResolver::MakeHessian() const {
             double v = Hessian[i + 1][j + 1];
             double s = Hessian[i + 1][j], t = Hessian[i][j + 1];
             double x = Hessian[j + 1][i], y = Hessian[j][i + 1];
+            //double x = Hessian[j][i + 1], y = Hessian[j + 1][i];
             v -= (s + t);
             double u = x + y;
             s -= x;
             t -= y;
-            hessian[i][i] += (u + s);
-            hessian[i + 1][i + 1] += (t + v);
-            hessian[j][j] += (u + t);
-            hessian[j + 1][j + 1] += (s + v);
+            hessian[i][i] += (u + t);
+            hessian[i + 1][i + 1] += (s + v);
+            hessian[j][j] += (u + s);
+            hessian[j + 1][j + 1] += (t + v);
             hessian[i][j] -= u;
             hessian[j][i] -= u;
             hessian[i + 1][j + 1] -= v;
@@ -274,8 +275,17 @@ std::vector<double> TRankingResolver::NewtonStep() const {
     //std::cout << std::endl;
     //Print(hessian);
     //std::cout << std::endl;
-    TMatrix inverse = Inverse(hessian);
-    return Mul(Mul(inverse, gradient), -1.0);
+    if (n <= 8) {
+        TMatrix inverse = Inverse(hessian);
+        return Mul(Mul(inverse, gradient), -1.0);
+    }
+    for (size_t i = 0; i < n; ++i) {
+        if (std::abs(hessian[i][i]) > 1e-10)
+            gradient[i] /= -hessian[i][i];
+        else
+            gradient[i] = 0;
+    }
+    return gradient;
 }
 
 double TRankingResolver::Approx(const std::vector<double> &dx) const {
@@ -286,6 +296,10 @@ double TRankingResolver::Approx(const std::vector<double> &dx) const {
     for (size_t i = 0; i < n; ++i) {
         res += (dx[i] * gradient[i]);
         for (size_t j = 0; j < n; ++j) {
+            //if (i != j)
+            //    continue;
+            //if (n > 8 && i != j)
+            //    continue;
             res += (dx[i] * hessian[i][j] * dx[j] / 2.0);
         }
     }
