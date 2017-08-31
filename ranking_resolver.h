@@ -7,12 +7,12 @@
 class TRankingResolver {
     public:
         TRankingResolver(size_t height);
-        void Add(size_t targetBin, double targetScore, size_t otherBin, double otherScore, double weight);
-        void MoveTarget(size_t targetBin, double targetScore, size_t otherBin, double otherScore, bool otherMoved, double weight);
-        void MoveOther(size_t targetBin, double targetScore, size_t otherBin, double otherScore, bool targetMoved, double weight);
+        void Add(size_t targetBin, size_t otherBin, double scoreDiffSigma, double weight);
+        void MoveTarget(size_t targetBin, size_t otherBin, double scoreDiffSigma, bool otherMoved, double weight);
+        void MoveOther(size_t targetBin, size_t otherBin, double scoreDiffSigma, bool targetMoved, double weight);
         std::vector<double> MakeGradient() const;
         std::vector<std::vector<double>> MakeHessian() const;
-        std::vector<double> NewtonStep() const;
+        std::vector<double> NewtonStep(bool lite) const;
         double Approx(const std::vector<double> &dx) const;
 
     private:

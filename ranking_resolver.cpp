@@ -7,71 +7,71 @@
 TRankingResolver::TRankingResolver(size_t height)
     : Gradient(1 << (height + 1))
     , Hessian(1 << (height + 1), std::vector<double>(1 << (height + 1)))
-    , SumWeights(1e-38)
+    , SumWeights(1)
 {
 }
 
-void TRankingResolver::Add(size_t targetBin, double targetScore, size_t otherBin, double otherScore, double weight) {
-    SumWeights += weight;
+void TRankingResolver::Add(size_t targetBin, size_t otherBin, double scoreDiffSigma, double weight) {
+    //SumWeights += weight;
     bool same = (targetBin == otherBin);
     targetBin = targetBin * 2 + 1;
     otherBin = otherBin * 2 + 1;
-    double t = 1.0 / (1.0 + exp(targetScore - otherScore));
-    Gradient[targetBin] -= (t * weight);
-    Gradient[otherBin] += (t * weight);
+    double t = scoreDiffSigma * weight, t2 = scoreDiffSigma * (1 - scoreDiffSigma) * weight;
+    Gradient[targetBin] -= t;
+    Gradient[otherBin] += t;
     size_t a = std::max(targetBin, otherBin), b = std::min(targetBin, otherBin);
     if (same)
-        Hessian[a][b] += (2 * t * (1 - t) * weight);
+        Hessian[a][b] += (2 * t2);
     else
-        Hessian[a][b] += (t * (1 - t) * weight);
+        Hessian[a][b] += t2;
 }
 
-void TRankingResolver::MoveTarget(size_t targetBin, double targetScore, size_t otherBin, double otherScore, bool otherMoved, double weight) {
+void TRankingResolver::MoveTarget(size_t targetBin, size_t otherBin, double scoreDiffSigma, bool otherMoved, double weight) {
     bool same = (targetBin == otherBin);
     targetBin = targetBin * 2;
     otherBin = otherBin * 2 + (otherMoved ? 0 : 1);
-    double t = 1.0 / (1.0 + exp(targetScore - otherScore));
-    Gradient[targetBin] -= (t * weight);
+    double t = scoreDiffSigma * weight, t2 = scoreDiffSigma * (1 - scoreDiffSigma) * weight;
+    Gradient[targetBin] -= t;
     if (same) {
         if (!otherMoved) {
             size_t a = targetBin + 1, b = targetBin;
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         } else {
             size_t a = targetBin, b = targetBin + 1;
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         }
     } else {
         if (!otherMoved) {
             size_t a = std::max(targetBin, otherBin), b = std::min(targetBin, otherBin);
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         } else {
             size_t a = std::max(targetBin + 1, otherBin), b = std::min(targetBin + 1, otherBin);
-            Hessian[b][a] += (t * (1 - t) * weight);
+            Hessian[b][a] += t2;
         }
     }
 }
 
-void TRankingResolver::MoveOther(size_t targetBin, double targetScore, size_t otherBin, double otherScore, bool targetMoved, double weight) {
+void TRankingResolver::MoveOther(size_t targetBin, size_t otherBin, double scoreDiffSigma, bool targetMoved, double weight) {
     bool same = (targetBin == otherBin);
     targetBin = targetBin * 2 + (targetMoved ? 0 : 1);
     otherBin = otherBin * 2;
-    double t = 1.0 / (1.0 + exp(targetScore - otherScore));
-    Gradient[otherBin] += (t * weight);
+    double t = scoreDiffSigma * weight, t2 = scoreDiffSigma * (1 - scoreDiffSigma) * weight;
+    Gradient[otherBin] += t;
     if (same) {
         if (!targetMoved) {
             size_t a = otherBin + 1, b = otherBin;
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         } else {
             size_t a = otherBin, b = otherBin + 1;
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         }
     } else {
         if (!targetMoved) {
             size_t a = std::max(targetBin, otherBin), b = std::min(targetBin, otherBin);
-            Hessian[a][b] += (t * (1 - t) * weight);
+            Hessian[a][b] += t2;
         } else {
             size_t a = std::max(targetBin, otherBin + 1), b = std::min(targetBin, otherBin + 1);
-            Hessian[b][a] += (t * (1 - t) * weight);
+            Hessian[b][a] += t2;
         }
     }
 }
@@ -266,7 +266,7 @@ std::vector<std::vector<double>> TRankingResolver::MakeHessian() const {
 
 }
 
-std::vector<double> TRankingResolver::NewtonStep() const {
+std::vector<double> TRankingResolver::NewtonStep(bool lite) const {
     size_t n = Gradient.size();
     std::vector<double> gradient = MakeGradient();
     std::vector<std::vector<double>> hessian = MakeHessian();
@@ -274,7 +274,7 @@ std::vector<double> TRankingResolver::NewtonStep() const {
     //std::cout << std::endl;
     //Print(hessian);
     //std::cout << std::endl;
-    if (n <= 8) {
+    if (!lite) {
         TMatrix inverse = Inverse(hessian);
         return Mul(Mul(inverse, gradient), -1.0);
     }
@@ -295,10 +295,6 @@ double TRankingResolver::Approx(const std::vector<double> &dx) const {
     for (size_t i = 0; i < n; ++i) {
         res += (dx[i] * gradient[i]);
         for (size_t j = 0; j < n; ++j) {
-            //if (i != j)
-            //    continue;
-            //if (n > 8 && i != j)
-            //    continue;
             res += (dx[i] * hessian[i][j] * dx[j] / 2.0);
         }
     }
