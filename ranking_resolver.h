@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <cstddef>
 
 
 class TRankingResolver {
@@ -18,10 +19,5 @@ class TRankingResolver {
         std::vector<double> Gradient;               // Size is 2 ^ (height + 1), +1 because of splitting for next level
         std::vector<std::vector<double>> Hessian;   // Size is 2 ^ (height + 1) by 2 ^ (height + 1)
         double SumWeights;
-
-        TRankingResolver(const TRankingResolver &) = delete;
-        TRankingResolver(TRankingResolver &&) = delete;
-        TRankingResolver &operator = (const TRankingResolver &) = delete;
-        TRankingResolver &operator = (TRankingResolver &&) = delete;
 };
 

@@ -29,7 +29,7 @@ std::vector<TItem> GenerateData(size_t count, size_t n) {
 }
 
 int main() {
-    size_t n = 2;
+    size_t n = 1;
     TRankingResolver resolver(n);
     std::vector<TItem> data = GenerateData(50000, n);
     std::vector<size_t> idx(data.size());
@@ -41,11 +41,11 @@ int main() {
     std::cout << std::setprecision(2) << std::fixed; 
     std::set<size_t> movedGroups;
     for (size_t i = 0; i < idx.size(); ++i) {
-        if (i % 100 == 0) {
-            std::cout << "Iteration " << i / 100 << ":" << std::endl;
-            for (double val : resolver.MakeGradient())
-                std::cout << val << "\t";
-            std::cout << std::endl << std::endl;
+        if (i % 1000 == 0) {
+            std::cout << "Iteration " << i / 1000 << ":" << std::endl;
+            //for (double val : resolver.MakeGradient())
+            //    std::cout << val << "\t";
+            //std::cout << std::endl << std::endl;
             auto step = resolver.NewtonStep();
             std::cout << resolver.Approx(step) << std::endl;
             for (auto val : step)
@@ -64,9 +64,9 @@ int main() {
         }
     }
     std::cout << "Final:" << std::endl;
-    for (double val : resolver.MakeGradient())
-        std::cout << val << "\t";
-    std::cout << std::endl << std::endl;
+    //for (double val : resolver.MakeGradient())
+    //    std::cout << val << "\t";
+    //std::cout << std::endl << std::endl;
     auto step = resolver.NewtonStep();
     std::cout << resolver.Approx(step) << std::endl;
     for (auto val : step)

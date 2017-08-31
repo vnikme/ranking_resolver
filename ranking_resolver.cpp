@@ -45,7 +45,7 @@ void TRankingResolver::MoveTarget(size_t targetBin, double targetScore, size_t o
             size_t a = std::max(targetBin, otherBin), b = std::min(targetBin, otherBin);
             Hessian[a][b] += (t * (1 - t) * weight);
         } else {
-            size_t a = std::max(targetBin, otherBin + 1), b = std::min(targetBin, otherBin + 1);
+            size_t a = std::max(targetBin + 1, otherBin), b = std::min(targetBin + 1, otherBin);
             Hessian[b][a] += (t * (1 - t) * weight);
         }
     }
@@ -70,7 +70,7 @@ void TRankingResolver::MoveOther(size_t targetBin, double targetScore, size_t ot
             size_t a = std::max(targetBin, otherBin), b = std::min(targetBin, otherBin);
             Hessian[a][b] += (t * (1 - t) * weight);
         } else {
-            size_t a = std::max(targetBin + 1, otherBin), b = std::min(targetBin + 1, otherBin);
+            size_t a = std::max(targetBin, otherBin + 1), b = std::min(targetBin, otherBin + 1);
             Hessian[b][a] += (t * (1 - t) * weight);
         }
     }
@@ -240,8 +240,7 @@ std::vector<std::vector<double>> TRankingResolver::MakeHessian() const {
         for (size_t j = 0; j < i; j += 2) {
             double v = Hessian[i + 1][j + 1];
             double s = Hessian[i + 1][j], t = Hessian[i][j + 1];
-            double x = Hessian[j + 1][i], y = Hessian[j][i + 1];
-            //double x = Hessian[j][i + 1], y = Hessian[j + 1][i];
+            double x = Hessian[j][i + 1], y = Hessian[j + 1][i];
             v -= (s + t);
             double u = x + y;
             s -= x;
