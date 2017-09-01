@@ -33,11 +33,14 @@ int main() {
     TRankingResolver resolver(n);
     std::vector<TItem> data = GenerateData(50000, n);
     std::vector<size_t> idx(data.size());
+    std::vector<double> scores(data.size() / 2);
     for (size_t i = 0; i < idx.size(); ++i)
         idx[i] = i;
     std::sort(idx.begin(), idx.end(), [&data] (size_t a, size_t b) { return data[a].Feature < data[b].Feature; });
-    for (size_t i = 0; i < data.size(); i += 2)
-        resolver.Add(data[i].Bin, data[i].Score, data[i + 1].Bin, data[i + 1].Score, 1.0);
+    for (size_t i = 0; i < data.size(); i += 2) {
+        scores[i / 2] = 1.0 / (1.0 + exp(data[i].Score - data[i + 1].Score));
+        resolver.Add(data[i].Bin, data[i + 1].Bin, scores[i / 2], 1.0);
+    }
     std::cout << std::setprecision(2) << std::fixed; 
     std::set<size_t> movedGroups;
     for (size_t i = 0; i < idx.size(); ++i) {
@@ -46,7 +49,7 @@ int main() {
             //for (double val : resolver.MakeGradient())
             //    std::cout << val << "\t";
             //std::cout << std::endl << std::endl;
-            auto step = resolver.NewtonStep();
+            auto step = resolver.NewtonStep(false);
             std::cout << resolver.Approx(step) << std::endl;
             for (auto val : step)
                 std::cout << val << ' ';
@@ -57,17 +60,17 @@ int main() {
         movedGroups.insert(obj.Group);
         if (obj.IsTarget) {
             TItem &other = data[obj.Group * 2 + 1];
-            resolver.MoveTarget(obj.Bin, obj.Score, other.Bin, other.Score, wasMoved, 1.0);
+            resolver.MoveTarget(obj.Bin, other.Bin, scores[obj.Group], wasMoved, 1.0);
         } else {
             TItem &target = data[obj.Group * 2];
-            resolver.MoveOther(target.Bin, target.Score, obj.Bin, obj.Score, wasMoved, 1.0);
+            resolver.MoveOther(target.Bin, obj.Bin, scores[obj.Group], wasMoved, 1.0);
         }
     }
     std::cout << "Final:" << std::endl;
     //for (double val : resolver.MakeGradient())
     //    std::cout << val << "\t";
     //std::cout << std::endl << std::endl;
-    auto step = resolver.NewtonStep();
+    auto step = resolver.NewtonStep(false);
     std::cout << resolver.Approx(step) << std::endl;
     for (auto val : step)
         std::cout << val << ' ';

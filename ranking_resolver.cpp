@@ -7,12 +7,12 @@
 TRankingResolver::TRankingResolver(size_t height)
     : Gradient(1 << (height + 1))
     , Hessian(1 << (height + 1), std::vector<double>(1 << (height + 1)))
-    , SumWeights(1)
+    , SumWeights(1e-38)
 {
 }
 
 void TRankingResolver::Add(size_t targetBin, size_t otherBin, double scoreDiffSigma, double weight) {
-    //SumWeights += weight;
+    SumWeights += weight;
     bool same = (targetBin == otherBin);
     targetBin = targetBin * 2 + 1;
     otherBin = otherBin * 2 + 1;
