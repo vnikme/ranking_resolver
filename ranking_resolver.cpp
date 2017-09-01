@@ -189,29 +189,81 @@ namespace {
         }
     }
 
-    TMatrix Inverse(const TMatrix &a, double add) {
-        constexpr double eps = 0.00001;
-        constexpr double maxValue = 1e20;
-        size_t maxSteps = 10;
-        double seed = 0.00001;
-        TMatrix x;
-        for (; ;) {
-            if (DoInverse(a, add, seed, eps, maxValue, maxSteps, x)) {
-                //std::cout << "Found inverse: " << add << " " << seed << " " << maxSteps << std::endl;
-                //std::cout << std::endl;
-                return x;
+    void Print(const TVector &a) {
+        for (double val : a)
+            std::cout << val << '\t';
+        std::cout << std::endl;
+    }
+
+    void Cholesky(const TMatrix &a, TMatrix &l, TVector &d) {
+        size_t n = a.size();
+        for (size_t j = 0; j < n; ++j) {
+            l[j][j] = 1.0;
+            d[j] = a[j][j];
+            for (size_t k = 0; k < j; ++k)
+                d[j] -= (l[j][k] * l[j][k] * d[k]);
+            double id = std::abs(d[j]) > 1e-5 ? 1/d[j] : 0.0;
+            for (size_t i = j + 1; i < n; ++i) {
+                l[i][j] = a[i][j] * id;
+                for (size_t k = 0; k < j; ++k)
+                    l[i][j] -= (l[i][k] * l[j][k] * d[k] * id);
+                l[j][i] = 0.0;
             }
-            if (add == 0.0)
-                add = 0.0001;
-            else
-                add *= 2;
-            seed *= 0.9;
-            maxSteps += 5;
         }
     }
 
+    TMatrix Diag(const TVector &d) {
+        size_t n = d.size();
+        TMatrix a(n, TVector(n));
+        for (size_t i = 0; i < n; ++i)
+            a[i][i] = d[i];
+        return a;
+    }
+
+    TMatrix Transpose(TMatrix a) {
+        size_t n = a.size();
+        for (size_t i = 0; i < n; ++i)
+            for (size_t j = 0; j < i; ++j)
+                std::swap(a[i][j], a[j][i]);
+        return a;
+    }
+
+    void AddRow(TMatrix &a, size_t dest, size_t src, double mul) {
+        size_t m = a.front().size();
+        for (size_t j = 0; j < m; ++j)
+            a[dest][j] += (mul * a[src][j]);
+    }
+
+    TMatrix InverseL(TMatrix a) {
+        size_t n = a.size();
+        for (size_t i = 0; i < n; ++i) {
+            a[i].resize(2 * n);
+            a[i][i + n] = 1.0;
+        }
+        for (size_t i = n; i > 0; --i) {
+            for (size_t k = i; k < n; ++k)
+                AddRow(a, k, i - 1, -a[k][i - 1]);
+        }
+        for (size_t i = 0; i < n; ++i)
+            a[i].erase(a[i].begin(), a[i].begin() + n);
+        return a;
+    }
+
+    TVector InverseDiag(TVector d) {
+        for (double &val : d)
+            if (std::abs(val) > 1e-10)
+                val = 1 / val;
+        return d;
+    }
+
     TMatrix Inverse(const TMatrix &a) {
-        return Inverse(a, 0.0);
+        size_t n = a.size();
+        TMatrix l(n, TVector(n));
+        TVector d(n);
+        Cholesky(a, l, d);
+        l = InverseL(l);
+        d = InverseDiag(d);
+        return Mul(Transpose(l), Mul(Diag(d), l));
     }
 
 } // namespace
@@ -276,6 +328,7 @@ std::vector<double> TRankingResolver::NewtonStep(bool lite) const {
     //std::cout << std::endl;
     if (!lite) {
         TMatrix inverse = Inverse(hessian);
+        //std::cout << "Max diff: " << MaxDiff(hessian, Mul(hessian, Mul(inverse, hessian))) << std::endl;
         return Mul(Mul(inverse, gradient), -1.0);
     }
     for (size_t i = 0; i < n; ++i) {
